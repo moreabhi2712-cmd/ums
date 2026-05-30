@@ -1,3 +1,4 @@
+
 "use client";
 import { useAdmissionStore } from "@/store/admissionStore";
 import Header from "@/components/admission/Header";
