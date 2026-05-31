@@ -1,5 +1,6 @@
 "use client";
-import { useAdmissionStore } from "@/store/admissionStore";
+import { useState } from "react";
+import { useAdmissionStore, validateDeclarationData } from "@/store/admissionStore";
 
 const inputCls = (error?: string) =>
   `w-full bg-white border ${error ? "border-red-400 focus:border-red-400 focus:ring-red-400" : "border-gray-200 focus:border-[#C9922A] focus:ring-[#C9922A]"} rounded-lg px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 transition-all`;
@@ -14,8 +15,24 @@ const Field = ({ label, children, required, error }: { label: string; children: 
   </div>
 );
 
-export default function Step5Declaration({ errors }: { errors: Record<string, string> }) {
+export default function Step5Declaration({ errors: propErrors }: { errors: Record<string, string> }) {
   const { declarationData, updateDeclarationData, bioData, contactData, programmeData } = useAdmissionStore();
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
+
+  const getError = (field: string): string | undefined => {
+    if (touched[field]) return localErrors[field];
+    return propErrors[field];
+  };
+
+  const touch = (field: string) => setTouched(prev => ({ ...prev, [field]: true }));
+
+  const updateField = (field: string, value: string | boolean) => {
+    const updated = { ...declarationData, [field]: value };
+    updateDeclarationData({ [field]: value });
+    touch(field);
+    setLocalErrors(validateDeclarationData(updated as typeof declarationData));
+  };
 
   return (
     <div className="space-y-5">
@@ -61,12 +78,17 @@ export default function Step5Declaration({ errors }: { errors: Record<string, st
         <p>5. I understand that admission is subject to meeting the minimum entry requirements.</p>
       </div>
 
+      {/* Checkbox */}
       <div className="flex flex-col gap-1">
         <label className="flex items-start gap-3 cursor-pointer group">
           <div
-            onClick={() => updateDeclarationData({ agreed: !declarationData.agreed })}
+            onClick={() => updateField("agreed", !declarationData.agreed)}
             className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center shrink-0 transition-all
-              ${declarationData.agreed ? "bg-[#C9922A] border-[#C9922A]" : errors.agreed ? "border-red-400" : "bg-white border-gray-300 group-hover:border-[#C9922A]"}`}
+              ${declarationData.agreed
+                ? "bg-[#C9922A] border-[#C9922A]"
+                : getError("agreed")
+                  ? "border-red-400"
+                  : "bg-white border-gray-300 group-hover:border-[#C9922A]"}`}
           >
             {declarationData.agreed && <span className="text-white text-xs font-bold">✓</span>}
           </div>
@@ -74,17 +96,21 @@ export default function Step5Declaration({ errors }: { errors: Record<string, st
             I have read, understood, and agree to the declaration above. I confirm that all information provided is accurate and complete.
           </span>
         </label>
-        {errors.agreed && <p className="text-[11px] text-red-500 ml-8">⚠ {errors.agreed}</p>}
+        {getError("agreed") && <p className="text-[11px] text-red-500 ml-8">⚠ {getError("agreed")}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Signature (Full Name)" required error={errors.signature}>
-          <input className={inputCls(errors.signature)} placeholder="Type your full name as signature"
-            value={declarationData.signature} onChange={e => updateDeclarationData({ signature: e.target.value })} />
+        <Field label="Signature (Full Name)" required error={getError("signature")}>
+          <input className={inputCls(getError("signature"))} placeholder="Type your full name as signature"
+            value={declarationData.signature}
+            onBlur={() => touch("signature")}
+            onChange={e => updateField("signature", e.target.value)} />
         </Field>
-        <Field label="Date" required error={errors.date}>
-          <input type="date" className={inputCls(errors.date)}
-            value={declarationData.date} onChange={e => updateDeclarationData({ date: e.target.value })} />
+        <Field label="Date" required error={getError("date")}>
+          <input type="date" className={inputCls(getError("date"))}
+            value={declarationData.date}
+            onBlur={() => touch("date")}
+            onChange={e => updateField("date", e.target.value)} />
         </Field>
       </div>
     </div>

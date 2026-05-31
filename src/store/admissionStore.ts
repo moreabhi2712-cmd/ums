@@ -97,7 +97,7 @@ export const validateBioData = (data: BioData): Record<string, string> => {
 
 export const validateContactData = (data: ContactData): Record<string, string> => {
   const errors: Record<string, string> = {};
-  const nigerianPhone = /^0[7-9][0-1]\d{8}$/;
+  const nigerianPhone = /^0\d{10}$/;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (!data.phoneNumber.trim()) errors.phoneNumber = "Phone number is required";
@@ -151,7 +151,7 @@ export const validateProgrammeData = (data: ProgrammeData): Record<string, strin
   if (!data.programmeType) errors.programmeType = "Programme type is required";
 
   if (!data.jambRegNumber.trim()) errors.jambRegNumber = "JAMB registration number is required";
-  else if (!/^\d{10}[A-Z]{2}$/.test(data.jambRegNumber.toUpperCase())) errors.jambRegNumber = "Enter valid JAMB reg number (e.g. 20261234567AB)";
+  else if (!/^\d{11}[A-Z]{2}$/.test(data.jambRegNumber.toUpperCase())) errors.jambRegNumber = "Enter valid JAMB reg number (e.g. 20261234567AB)";
 
   if (!data.jambScore.trim()) errors.jambScore = "JAMB score is required";
   else if (isNaN(Number(data.jambScore)) || Number(data.jambScore) < 0 || Number(data.jambScore) > 400) errors.jambScore = "JAMB score must be between 0 and 400";

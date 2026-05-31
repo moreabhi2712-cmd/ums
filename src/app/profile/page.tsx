@@ -49,16 +49,6 @@ export default function ProfilePage() {
             <StepIndicator current={currentStep} />
           </div>
           <div className="p-6 md:p-8">
-            {Object.keys(errors).length > 0 && (
-              <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
-                <p className="text-sm font-bold text-red-700 mb-2">⚠ Please fix the following errors:</p>
-                <ul className="space-y-1">
-                  {Object.values(errors).map((err, i) => (
-                    <li key={i} className="text-xs text-red-600">• {err}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
             {currentStep === 1 && <Step1BioData errors={errors} />}
             {currentStep === 2 && <Step2Contact errors={errors} />}
             {currentStep === 3 && <Step3OLevel errors={errors} />}
