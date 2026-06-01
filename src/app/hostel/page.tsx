@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useAdmissionStore } from "@/store/admissionStore";
 
 // ─── Static Data ─────────────────────────────────────────────────────────────
 const HOSTELS = [
@@ -95,6 +96,8 @@ export default function HostelPage() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [maintenanceModal, setMaintenanceModal] = useState(false);
   const [newRequest, setNewRequest] = useState({ category: "", priority: "Medium", location: "My Room", description: "" });
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsError, setTermsError] = useState(false);
 
   const allocated = {
     hostel: "Moremi Hall", block: "Block A", room: "A101", bed: 3,
@@ -148,7 +151,8 @@ export default function HostelPage() {
                 <h2 className="text-2xl font-bold text-[#0D1B35]">Welcome back, <span className="text-[#C9922A]">Olusaseun</span> 🏠</h2>
                 <p className="text-gray-400 text-sm">2024/2025 Session — Bed space booking is now open</p>
               </div>
-              <button onClick={() => setView("browse")}
+              <button 
+                onClick={() => { setView("booking"); setBookingStep(1); setSelectedHostel(null); }}
                 className="flex items-center gap-2 px-4 py-2 bg-[#0D1B35] text-white rounded-xl text-sm font-bold hover:bg-[#1a2f5e] transition-all">
                 🏠 Book a Bed Space
               </button>
@@ -179,7 +183,7 @@ export default function HostelPage() {
                   <p className="text-[11px] text-amber-600">Complete your payment first, then select your preferred hall, block, and bed number. First come, first served.</p>
                 </div>
               </div>
-              <button onClick={() => setView("browse")}
+              <button onClick={() => { setView("booking"); setBookingStep(1); setSelectedHostel(null); }}
                 className="px-4 py-2 bg-amber-500 text-white rounded-lg text-xs font-bold hover:bg-amber-600 transition-all whitespace-nowrap">
                 Apply Now →
               </button>
@@ -214,7 +218,7 @@ export default function HostelPage() {
                 {HOSTELS.slice(0, 3).map(hostel => (
                   <HostelCard key={hostel.id} hostel={hostel}
                     onView={() => setModalHostel(hostel)}
-                    onBook={() => { setSelectedHostel(hostel); setView("booking"); setBookingStep(2); }} />
+                    onBook={() => { setSelectedHostel(null); setView("booking"); setBookingStep(1); }} />
                 ))}
               </div>
             </div>
@@ -244,7 +248,7 @@ export default function HostelPage() {
               {HOSTELS.map(hostel => (
                 <HostelCard key={hostel.id} hostel={hostel}
                   onView={() => setModalHostel(hostel)}
-                  onBook={() => { setSelectedHostel(hostel); setView("booking"); setBookingStep(2); }} />
+                  onBook={() => { setSelectedHostel(hostel); setView("booking"); setBookingStep(1); }} />
               ))}
             </div>
           </div>
@@ -261,20 +265,20 @@ export default function HostelPage() {
             <BookingSteps current={bookingStep} />
 
             {/* Step 1 — Personal Info */}
-            {bookingStep === 1 && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center space-y-3">
-                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto text-2xl">✅</div>
-                <h3 className="font-bold text-[#0D1B35]">Personal Info Verified</h3>
-                <p className="text-sm text-gray-500">Your admission details have been verified successfully.</p>
-                <button onClick={() => { setView("browse"); }}
-                  className="px-6 py-2.5 bg-[#0E9F6E] text-white rounded-xl text-sm font-bold">
-                  Choose a Hostel →
-                </button>
-              </div>
-            )}
+{bookingStep === 1 && (
+  <PersonalInfoStep
+    onContinue={() => {
+      if (selectedHostel) {
+        setBookingStep(3); // hostel already selected hai browse se
+      } else {
+        setBookingStep(2); // hostel select karna hai
+      }
+    }}
+  />
+)}
 
             {/* Step 2 — Choose Hostel */}
-            {bookingStep === 2 && !selectedHostel && (
+            {bookingStep === 2 && (
               <div className="grid grid-cols-3 gap-4">
                 {HOSTELS.filter(h => h.status !== "full").map(hostel => (
                   <HostelCard key={hostel.id} hostel={hostel}
@@ -409,10 +413,29 @@ export default function HostelPage() {
                   </div>
                   <textarea placeholder="Special needs or accessibility requirements..."
                     className="w-full text-xs border border-gray-200 rounded-lg p-3 resize-none h-16 focus:outline-none focus:border-[#C9922A]" />
-                  <label className="flex items-start gap-2 cursor-pointer">
-                    <input type="checkbox" className="mt-0.5" />
-                    <span className="text-[10px] text-gray-500">I agree to the hostel terms and conditions, including the policy on conduct, damages, and early checkout charges.</span>
-                  </label>
+                 <div className="flex flex-col gap-1">
+  <label className="flex items-start gap-2 cursor-pointer group">
+    <div
+      onClick={() => {
+        setTermsAccepted(!termsAccepted);
+        setTermsError(false);
+      }}
+      className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center shrink-0 transition-all cursor-pointer
+        ${termsAccepted
+          ? "bg-[#C9922A] border-[#C9922A]"
+          : termsError
+            ? "border-red-400"
+            : "bg-white border-gray-300 group-hover:border-[#C9922A]"}`}>
+      {termsAccepted && <span className="text-white text-xs font-bold">✓</span>}
+    </div>
+    <span className="text-[10px] text-gray-500">
+      I agree to the hostel terms and conditions, including the policy on conduct, damages, and early checkout charges.
+    </span>
+  </label>
+  {termsError && (
+    <p className="text-[11px] text-red-500 ml-7">⚠ You must agree to the terms before proceeding</p>
+  )}
+</div>
                 </div>
 
                 {/* Payment Method */}
@@ -447,11 +470,17 @@ export default function HostelPage() {
                       Back
                     </button>
                     <button
-                      onClick={() => setView("allocation")}
-                      disabled={!paymentMethod}
-                      className="flex-1 py-2.5 bg-[#0E9F6E] text-white rounded-xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0a8a5e] transition-all">
-                      Confirm & Pay ₦45,000
-                    </button>
+  onClick={() => {
+    if (!termsAccepted) {
+      setTermsError(true);
+      return;
+    }
+    setView("allocation");
+  }}
+  disabled={!paymentMethod}
+  className="flex-1 py-2.5 bg-[#0E9F6E] text-white rounded-xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0a8a5e] transition-all">
+  Confirm & Pay ₦45,000
+</button>
                   </div>
                 </div>
               </div>
@@ -689,7 +718,7 @@ export default function HostelPage() {
                   Close
                 </button>
                 {modalHostel.status !== "full" && (
-                  <button onClick={() => { setSelectedHostel(modalHostel); setModalHostel(null); setView("booking"); setBookingStep(2); }}
+                  <button onClick={() => { setModalHostel(null); setView("booking"); setBookingStep(1); }}
                     className="flex-1 py-2.5 bg-[#0E9F6E] text-white rounded-xl text-sm font-bold hover:bg-[#0a8a5e] transition-all">
                     Book This Hostel
                   </button>
@@ -833,6 +862,158 @@ function BookingSteps({ current }: { current: number }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+function PersonalInfoStep({ onContinue }: { onContinue: () => void }) {
+  const hasProfile = true;
+  const validCredits = 7;
+
+  const bioData = {
+    passportPhoto: null,
+    surname: "Ibrahim", firstName: "Fatimah", otherName: "Aisha",
+    dateOfBirth: "2000-05-14", gender: "Female", maritalStatus: "Single",
+    nationality: "Nigerian", stateOfOrigin: "Kwara", localGovtArea: "Offa",
+    nin: "12345678981",
+  };
+
+  const contactData = {
+    phoneNumber: "08012345678", emailAddress: "Fatimah@email.com",
+    residentialAddress: "12, Harmony Street, Offa, Kwara State",
+    guardianFullName: "Ibrahim Musa", guardianPhone: "08098765432",
+  };
+
+  const programmeData = {
+    faculty: "Sciences", department: "Computer Science",
+    modeOfEntry: "UTME", jambScore: "312",
+  };
+
+  return (
+    <div className="space-y-5">
+      {!hasProfile && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 flex items-center gap-3">
+          <span className="text-red-500 text-lg">⚠</span>
+          <div>
+            <p className="text-sm font-bold text-red-700">Profile Incomplete</p>
+            <p className="text-xs text-red-500">Please complete your admission profile before booking a hostel.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Header Card */}
+      <div className="bg-[#0D1B35] rounded-2xl p-6 flex items-center gap-5">
+        <div className="w-20 h-20 rounded-xl border-2 border-[#C9922A]/40 overflow-hidden bg-[#C9922A]/10 flex items-center justify-center shrink-0">
+          {bioData.passportPhoto ? (
+            <img src={bioData.passportPhoto} className="w-full h-full object-cover" alt="passport" />
+          ) : (
+            <span className="text-3xl">👤</span>
+          )}
+        </div>
+        <div className="flex-1">
+          <p className="text-[10px] text-[#C9922A] font-bold tracking-widest uppercase mb-1">Student Profile</p>
+          <h3 className="text-white font-bold text-xl">
+            {bioData.surname && bioData.firstName
+              ? `${bioData.surname} ${bioData.firstName}${bioData.otherName ? " " + bioData.otherName : ""}`
+              : "—"}
+          </h3>
+          <p className="text-gray-400 text-xs mt-1">
+            {programmeData.faculty || "—"} · {programmeData.department || "—"}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] text-gray-400">Admission Status</p>
+          {hasProfile ? (
+            <span className="text-[11px] bg-green-500/20 text-green-400 px-3 py-1 rounded-full font-bold">✓ Verified</span>
+          ) : (
+            <span className="text-[11px] bg-red-500/20 text-red-400 px-3 py-1 rounded-full font-bold">✗ Incomplete</span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-5">
+        {/* Personal Details */}
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-gray-50 border-b border-gray-100 px-5 py-3">
+            <p className="text-[10px] font-bold tracking-widest text-[#0D1B35] uppercase">Personal Details</p>
+          </div>
+          <div className="p-5 space-y-3">
+            {[
+              { label: "Full Name", value: [bioData.surname, bioData.firstName, bioData.otherName].filter(Boolean).join(" ") || "—" },
+              { label: "Date of Birth", value: bioData.dateOfBirth || "—" },
+              { label: "Gender", value: bioData.gender || "—" },
+              { label: "State of Origin", value: bioData.stateOfOrigin || "—" },
+              { label: "LGA", value: bioData.localGovtArea || "—" },
+              { label: "NIN", value: bioData.nin || "—" },
+              { label: "Nationality", value: bioData.nationality || "—" },
+              { label: "Marital Status", value: bioData.maritalStatus || "—" },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex justify-between items-center text-xs border-b border-gray-50 pb-2 last:border-0 last:pb-0">
+                <span className="text-gray-400 uppercase tracking-wider text-[10px]">{label}</span>
+                <span className="font-semibold text-[#0D1B35]">{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {/* Contact Details */}
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-gray-50 border-b border-gray-100 px-5 py-3">
+              <p className="text-[10px] font-bold tracking-widest text-[#0D1B35] uppercase">Contact Details</p>
+            </div>
+            <div className="p-5 space-y-3">
+              {[
+                { label: "Phone", value: contactData.phoneNumber || "—" },
+                { label: "Email", value: contactData.emailAddress || "—" },
+                { label: "Address", value: contactData.residentialAddress || "—" },
+                { label: "Guardian", value: contactData.guardianFullName || "—" },
+                { label: "Guardian Phone", value: contactData.guardianPhone || "—" },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex justify-between items-start text-xs border-b border-gray-50 pb-2 last:border-0 last:pb-0">
+                  <span className="text-gray-400 uppercase tracking-wider text-[10px] shrink-0">{label}</span>
+                  <span className="font-semibold text-[#0D1B35] text-right ml-4 break-all">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Academic Details */}
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-gray-50 border-b border-gray-100 px-5 py-3">
+              <p className="text-[10px] font-bold tracking-widest text-[#0D1B35] uppercase">Academic Details</p>
+            </div>
+            <div className="p-5 space-y-3">
+              {[
+                { label: "Faculty", value: programmeData.faculty || "—" },
+                { label: "Department", value: programmeData.department || "—" },
+                { label: "Mode of Entry", value: programmeData.modeOfEntry || "—" },
+                { label: "JAMB Score", value: programmeData.jambScore || "—" },
+                { label: "O-Level Credits", value: validCredits > 0 ? `${validCredits} credits` : "—" },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex justify-between items-center text-xs border-b border-gray-50 pb-2 last:border-0 last:pb-0">
+                  <span className="text-gray-400 uppercase tracking-wider text-[10px]">{label}</span>
+                  <span className="font-semibold text-[#0D1B35]">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Continue Button */}
+      <div className="flex justify-between items-center pt-2">
+        <p className="text-xs text-gray-400">
+          {hasProfile
+            ? "✓ All details verified from your admission profile"
+            : "⚠ Complete your profile first to proceed"}
+        </p>
+        <button
+          onClick={onContinue}
+          disabled={!hasProfile}
+          className="px-8 py-2.5 bg-[#0E9F6E] text-white rounded-xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0a8a5e] transition-all shadow-md shadow-green-100">
+          Continue — Choose Hostel →
+        </button>
       </div>
     </div>
   );
